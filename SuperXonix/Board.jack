@@ -1,0 +1,235 @@
+/** 
+ * Represents the game board - a 64x32 logical grid.
+ * Each cell is 8x8 pixels on screen.
+ * Cell states: 0=SEA, 1=LAND, 2=TRAIL
+ */
+class Board {
+    field Array grid;      // 1D array representing 64x32 grid
+    field int landCount;   // Number of LAND cells for percentage calc
+
+    /** Constructs a new Board and initializes with border. */
+    constructor Board new() {
+        var int x, y, index;
+        
+        // Allocate grid array (64 * 32 = 2048 cells)
+        let grid = Array.new(2048);
+        let landCount = 0;
+        
+        // Initialize all cells to SEA (0)
+        let index = 0;
+        while (index < 2048) {
+            let grid[index] = 0;
+            let index = index + 1;
+        }
+        
+        // Create border (2 cells thick)
+        // Top border (y = 0, 1)
+        let y = 0;
+        while (y < 2) {
+            let x = 0;
+            while (x < 64) {
+                do setCell(x, y, 1);
+                let x = x + 1;
+            }
+            let y = y + 1;
+        }
+        
+        // Bottom border (y = 30, 31)
+        let y = 30;
+        while (y < 32) {
+            let x = 0;
+            while (x < 64) {
+                do setCell(x, y, 1);
+                let x = x + 1;
+            }
+            let y = y + 1;
+        }
+        
+        // Left border (x = 0, 1)
+        let x = 0;
+        while (x < 2) {
+            let y = 0;
+            while (y < 32) {
+                do setCell(x, y, 1);
+                let y = y + 1;
+            }
+            let x = x + 1;
+        }
+        
+        // Right border (x = 62, 63)
+        let x = 62;
+        while (x < 64) {
+            let y = 0;
+            while (y < 32) {
+                do setCell(x, y, 1);
+                let y = y + 1;
+            }
+            let x = x + 1;
+        }
+        
+        return this;
+    }
+
+    /** Gets the cell value at (x, y). Returns: 0=SEA, 1=LAND, 2=TRAIL */
+    method int getCell(int x, int y) {
+        var int index;
+        
+        if ((x < 0) | (x > 63) | (y < 0) | (y > 31)) {
+            return 1; // Out of bounds = LAND
+        }
+        
+        let index = (y * 64) + x;
+        return grid[index];
+    }
+
+    /** Sets the cell value at (x, y). val: 0=SEA, 1=LAND, 2=TRAIL */
+    method void setCell(int x, int y, int val) {
+        var int index, oldVal;
+        
+        if ((x < 0) | (x > 63) | (y < 0) | (y > 31)) {
+            return;
+        }
+        
+        let index = (y * 64) + x;
+        let oldVal = grid[index];
+        let grid[index] = val;
+        
+        // Update land count (LAND = 1)
+        if ((oldVal = 1) & (~(val = 1))) {
+            let landCount = landCount - 1;
+        }
+        if ((~(oldVal = 1)) & (val = 1)) {
+            let landCount = landCount + 1;
+        }
+        
+        return;
+    }
+
+    /** Draws a single cell on screen at logical position (x, y). */
+    method void drawCell(int x, int y) {
+        var int screenX, screenY, cellVal;
+        var int x1, y1, x2, y2;
+        
+        let cellVal = getCell(x, y);
+        // Each cell is 8x8 pixels
+        let screenX = x * 8;
+        let screenY = y * 8;
+        
+        let x1 = screenX;
+        let y1 = screenY;
+        let x2 = screenX + 7;
+        let y2 = screenY + 7;
+        
+        // Clamp to screen bounds
+        if (x2 > 511) { let x2 = 511; }
+        if (y2 > 255) { let y2 = 255; }
+        
+        // LAND = 1: Draw black
+        if (cellVal = 1) {
+            do Screen.setColor(true);
+            do Screen.drawRectangle(x1, y1, x2, y2);
+        } 
+        else {
+            // TRAIL = 2: Draw gray pattern
+            if (cellVal = 2) {
+                do Screen.setColor(true);
+                do Screen.drawRectangle(x1, y1, x2, y2);
+                // Draw white dots to create pattern
+                do Screen.setColor(false);
+                do Screen.drawPixel(x1 + 2, y1 + 2);
+                do Screen.drawPixel(x1 + 5, y1 + 5);
+                do Screen.drawPixel(x1 + 2, y1 + 5);
+                do Screen.drawPixel(x1 + 5, y1 + 2);
+            }
+            else {
+                // SEA = 0: Draw white
+                do Screen.setColor(false);
+                do Screen.drawRectangle(x1, y1, x2, y2);
+            }
+        }
+        
+        return;
+    }
+
+    /** Draws the entire board efficiently. */
+    method void drawAll() {
+        var int x, y;
+        
+        // Draw border using 4 large rectangles (MUCH faster than 2048 cells)
+        do Screen.setColor(true);  // Black for LAND
+        
+        // Top border (rows 0-1 = pixels 0-15)
+        do Screen.drawRectangle(0, 0, 511, 15);
+        
+        // Bottom border (rows 30-31 = pixels 240-255)
+        do Screen.drawRectangle(0, 240, 511, 255);
+        
+        // Left border (columns 0-1 = pixels 0-15)
+        do Screen.drawRectangle(0, 16, 15, 239);
+        
+        // Right border (columns 62-63 = pixels 496-511)
+        do Screen.drawRectangle(496, 16, 511, 239);
+        
+        // Draw any captured interior cells (only if LAND)
+        let y = 2;
+        while (y < 30) {
+            let x = 2;
+            while (x < 62) {
+                if (getCell(x, y) = 1) {
+                    do drawCell(x, y);
+                }
+                let x = x + 1;
+            }
+            let y = y + 1;
+        }
+        
+        return;
+    }
+
+    /** Returns the percentage of captured interior territory (0-100). */
+    method int getPercentage() {
+        var int x, y, interiorLand, cellVal;
+        
+        // Count only INTERIOR land cells (not the border)
+        // Interior is from (2,2) to (61,29) = 60x28 = 1680 cells
+        let interiorLand = 0;
+        
+        let y = 2;
+        while (y < 30) {
+            let x = 2;
+            while (x < 62) {
+                let cellVal = getCell(x, y);
+                if (cellVal = 1) {
+                    let interiorLand = interiorLand + 1;
+                }
+                let x = x + 1;
+            }
+            let y = y + 1;
+        }
+        
+        // 1680 interior cells total, percentage = interiorLand / 16.8 ≈ interiorLand / 17
+        return interiorLand / 17;
+    }
+
+    /** Returns true if the cell is SEA (0). */
+    method boolean isSea(int x, int y) {
+        return (getCell(x, y) = 0);
+    }
+
+    /** Returns true if the cell is LAND (1). */
+    method boolean isLand(int x, int y) {
+        return (getCell(x, y) = 1);
+    }
+
+    /** Returns true if the cell is TRAIL (2). */
+    method boolean isTrail(int x, int y) {
+        return (getCell(x, y) = 2);
+    }
+
+    /** Disposes of the board. */
+    method void dispose() {
+        do grid.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

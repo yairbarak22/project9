@@ -1,0 +1,15 @@
+/** Main class of the Super Xonix game. */
+class Main {
+
+    /** Initializes a new game and starts it. */
+    function void main() {
+        var SuperXonixGame game;
+        
+        let game = SuperXonixGame.new();
+        do game.run();
+        do game.dispose();
+        
+        return;
+    }
+}
+

@@ -1,0 +1,277 @@
+/** 
+ * Main game controller for Super Xonix.
+ * Manages the game loop, state, UI, and all game objects.
+ * Features 4 enemy balls for increased difficulty.
+ */
+class SuperXonixGame {
+    field Board board;
+    field Player player;
+    field Ball ball1;
+    field Ball ball2;
+    field Ball ball3;
+    field Ball ball4;
+    field int lives;
+    field int score;
+    field boolean gameOver;
+    field boolean gameWon;
+
+    /** Constructs a new game. */
+    constructor SuperXonixGame new() {
+        // Initialize game state
+        let lives = 3;
+        let score = 0;
+        let gameOver = false;
+        let gameWon = false;
+        
+        // Create game objects
+        let board = Board.new();
+        let player = Player.new(2, 2, board);
+        
+        // Create 4 enemy balls at different positions
+        let ball1 = Ball.new(20, 10);   // Upper-left area
+        let ball2 = Ball.new(44, 10);   // Upper-right area
+        let ball3 = Ball.new(20, 22);   // Lower-left area
+        let ball4 = Ball.new(44, 22);   // Lower-right area
+        
+        return this;
+    }
+
+    /** Runs the main game loop. */
+    method void run() {
+        var int key;
+        var int moveResult;
+        var int ballResult;
+        var int percentage;
+        
+        // Clear screen and draw initial state
+        do Screen.clearScreen();
+        do board.drawAll();
+        do drawHUD();
+        do player.draw();
+        do ball1.draw();
+        do ball2.draw();
+        do ball3.draw();
+        do ball4.draw();
+        
+        // Main game loop
+        while (~gameOver) {
+            // Check for quit (Q key = 81)
+            let key = Keyboard.keyPressed();
+            if (key = 81) {
+                let gameOver = true;
+            }
+            
+            if (~gameOver) {
+                // Handle player input
+                do player.handleInput();
+                
+                // Move player
+                let moveResult = player.move();
+                
+                // Check move result
+                if (moveResult = 1) {
+                    // Self-collision - lose life
+                    do loseLife();
+                }
+                if (moveResult = 2) {
+                    // Closed loop - fill area with all 4 ball positions!
+                    do FillUtils.fillArea(board, 
+                        ball1.getX(), ball1.getY(),
+                        ball2.getX(), ball2.getY(),
+                        ball3.getX(), ball3.getY(),
+                        ball4.getX(), ball4.getY());
+                    
+                    // Update score
+                    let percentage = board.getPercentage();
+                    let score = percentage * 10;
+                    
+                    // Check win condition (75%)
+                    if (percentage > 75) {
+                        let gameWon = true;
+                        let gameOver = true;
+                    }
+                }
+                
+                // Move all balls (only if game not over)
+                if (~gameOver) {
+                    // Ball 1
+                    let ballResult = ball1.move(board, player.getX(), player.getY());
+                    if ((ballResult = 1) | (ballResult = 2)) {
+                        do loseLife();
+                    }
+                    
+                    // Ball 2
+                    if (~gameOver) {
+                        let ballResult = ball2.move(board, player.getX(), player.getY());
+                        if ((ballResult = 1) | (ballResult = 2)) {
+                            do loseLife();
+                        }
+                    }
+                    
+                    // Ball 3
+                    if (~gameOver) {
+                        let ballResult = ball3.move(board, player.getX(), player.getY());
+                        if ((ballResult = 1) | (ballResult = 2)) {
+                            do loseLife();
+                        }
+                    }
+                    
+                    // Ball 4
+                    if (~gameOver) {
+                        let ballResult = ball4.move(board, player.getX(), player.getY());
+                        if ((ballResult = 1) | (ballResult = 2)) {
+                            do loseLife();
+                        }
+                    }
+                    
+                    // Draw all balls
+                    do ball1.draw();
+                    do ball2.draw();
+                    do ball3.draw();
+                    do ball4.draw();
+                }
+                
+                // Draw player
+                do player.draw();
+                
+                // Update HUD
+                do drawHUD();
+                
+                // Game speed delay
+                do Sys.wait(80);
+            }
+        }
+        
+        // Show end game message
+        if (gameWon) {
+            do showWinMessage();
+        } else {
+            if (lives = 0) {
+                do showGameOverMessage();
+            }
+        }
+        
+        return;
+    }
+
+    /** Handles losing a life. */
+    method void loseLife() {
+        let lives = lives - 1;
+        
+        if (lives = 0) {
+            let gameOver = true;
+        } else {
+            // Clear trail and reset player/balls
+            do FillUtils.clearTrail(board);
+            do player.reset(2, 2);
+            do ball1.reset(20, 10, board);
+            do ball2.reset(44, 10, board);
+            do ball3.reset(20, 22, board);
+            do ball4.reset(44, 22, board);
+            
+            // Redraw
+            do board.drawAll();
+            do player.draw();
+            do ball1.draw();
+            do ball2.draw();
+            do ball3.draw();
+            do ball4.draw();
+        }
+        
+        return;
+    }
+
+    /** Draws the HUD (lives and percentage). Uses printChar to avoid memory leaks. */
+    method void drawHUD() {
+        var int percentage;
+        
+        do Output.moveCursor(0, 0);
+        
+        // "Lives:" using ASCII codes to avoid String allocation
+        do Output.printChar(76);   // L
+        do Output.printChar(105);  // i
+        do Output.printChar(118);  // v
+        do Output.printChar(101);  // e
+        do Output.printChar(115);  // s
+        do Output.printChar(58);   // :
+        do Output.printInt(lives);
+        do Output.printChar(32);   // space
+        do Output.printChar(32);   // space
+        
+        // "Filled:"
+        do Output.printChar(70);   // F
+        do Output.printChar(105);  // i
+        do Output.printChar(108);  // l
+        do Output.printChar(108);  // l
+        do Output.printChar(101);  // e
+        do Output.printChar(100);  // d
+        do Output.printChar(58);   // :
+        let percentage = board.getPercentage();
+        do Output.printInt(percentage);
+        do Output.printChar(37);   // %
+        do Output.printChar(32);   // space
+        do Output.printChar(32);   // space
+        
+        // "Score:"
+        do Output.printChar(83);   // S
+        do Output.printChar(99);   // c
+        do Output.printChar(111);  // o
+        do Output.printChar(114);  // r
+        do Output.printChar(101);  // e
+        do Output.printChar(58);   // :
+        do Output.printInt(score);
+        do Output.printChar(32);   // space
+        do Output.printChar(32);   // space
+        do Output.printChar(32);   // space
+        
+        return;
+    }
+
+    /** Shows the win message. */
+    method void showWinMessage() {
+        do Output.moveCursor(11, 25);
+        do Output.printString("YOU WIN!");
+        do Output.moveCursor(13, 20);
+        do Output.printString("Final Score: ");
+        do Output.printInt(score);
+        do Output.moveCursor(15, 18);
+        do Output.printString("Press any key to exit");
+        
+        // Wait for key press
+        while (Keyboard.keyPressed() = 0) {
+            do Sys.wait(100);
+        }
+        
+        return;
+    }
+
+    /** Shows the game over message. */
+    method void showGameOverMessage() {
+        do Output.moveCursor(11, 24);
+        do Output.printString("GAME OVER");
+        do Output.moveCursor(13, 20);
+        do Output.printString("Final Score: ");
+        do Output.printInt(score);
+        do Output.moveCursor(15, 18);
+        do Output.printString("Press any key to exit");
+        
+        // Wait for key press
+        while (Keyboard.keyPressed() = 0) {
+            do Sys.wait(100);
+        }
+        
+        return;
+    }
+
+    /** Disposes of all game objects. */
+    method void dispose() {
+        do board.dispose();
+        do player.dispose();
+        do ball1.dispose();
+        do ball2.dispose();
+        do ball3.dispose();
+        do ball4.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

@@ -1,0 +1,202 @@
+/** 
+ * Represents the player in the game.
+ * Handles movement, trail creation, and drawing.
+ */
+class Player {
+    field int x, y;           // Current position (logical grid coords)
+    field int direction;      // 0=none, 1=up, 2=down, 3=left, 4=right
+    field boolean inSea;      // True if player is currently in the sea
+    field Board board;        // Reference to the game board
+
+    /** Constructs a new player at position (startX, startY). */
+    constructor Player new(int startX, int startY, Board gameBoard) {
+        let x = startX;
+        let y = startY;
+        let direction = 0;
+        let inSea = false;
+        let board = gameBoard;
+        
+        return this;
+    }
+
+    /** Draws the player on the screen. */
+    method void draw() {
+        var int screenX, screenY;
+        
+        let screenX = x * 8;
+        let screenY = y * 8;
+        
+        if (inSea) {
+            // In sea: draw small filled square (trail head)
+            do Screen.setColor(true);
+            do Screen.drawRectangle(screenX + 2, screenY + 2, screenX + 5, screenY + 5);
+        }
+        else {
+            // On land: draw cross marker (more visible starting point)
+            do Screen.setColor(false);  // White background first
+            do Screen.drawRectangle(screenX + 1, screenY + 1, screenX + 6, screenY + 6);
+            do Screen.setColor(true);   // Black cross
+            // Vertical line
+            do Screen.drawRectangle(screenX + 3, screenY + 1, screenX + 4, screenY + 6);
+            // Horizontal line
+            do Screen.drawRectangle(screenX + 1, screenY + 3, screenX + 6, screenY + 4);
+        }
+        
+        return;
+    }
+
+    /** Erases the player from the screen. */
+    method void erase() {
+        // Redraw the cell to erase player
+        do board.drawCell(x, y);
+        return;
+    }
+
+    /** Handles keyboard input and updates direction. */
+    method void handleInput() {
+        var int key;
+        
+        let key = Keyboard.keyPressed();
+        
+        // Only process if a key is actually pressed
+        if (key > 0) {
+            // Up arrow = 131
+            if (key = 131) {
+                // Can't reverse into own trail
+                if (~(direction = 2)) {
+                    let direction = 1;
+                }
+            }
+            // Down arrow = 133
+            if (key = 133) {
+                if (~(direction = 1)) {
+                    let direction = 2;
+                }
+            }
+            // Left arrow = 130
+            if (key = 130) {
+                if (~(direction = 4)) {
+                    let direction = 3;
+                }
+            }
+            // Right arrow = 132
+            if (key = 132) {
+                if (~(direction = 3)) {
+                    let direction = 4;
+                }
+            }
+        }
+        
+        return;
+    }
+
+    /** 
+     * Moves the player based on current direction.
+     * Returns: 0=OK, 1=self-collision (hit trail), 2=closed loop
+     */
+    method int move() {
+        var int nextX, nextY;
+        var int nextCellVal;
+        var int currentCellVal;
+        
+        // Calculate next position
+        let nextX = x;
+        let nextY = y;
+        
+        if (direction = 1) { let nextY = y - 1; }  // Up
+        if (direction = 2) { let nextY = y + 1; }  // Down
+        if (direction = 3) { let nextX = x - 1; }  // Left
+        if (direction = 4) { let nextX = x + 1; }  // Right
+        
+        // No movement if no direction
+        if (direction = 0) {
+            return 0;
+        }
+        
+        // Check bounds
+        if ((nextX < 0) | (nextX > 63) | (nextY < 0) | (nextY > 31)) {
+            return 0;
+        }
+        
+        let nextCellVal = board.getCell(nextX, nextY);
+        let currentCellVal = board.getCell(x, y);
+        
+        // Check for self-collision (hitting own trail)
+        if (nextCellVal = 2) {  // TRAIL
+            return 1;
+        }
+        
+        // Check if we're closing a loop (moving from trail/sea back to land)
+        if (inSea & (nextCellVal = 1)) {  // Moving to LAND while in sea
+            // Erase player first
+            do erase();
+            
+            // Move to new position
+            let x = nextX;
+            let y = nextY;
+            
+            let inSea = false;
+            let direction = 0;  // Stop movement
+            
+            return 2;  // Loop closed!
+        }
+        
+        // Normal movement
+        do erase();
+        
+        // If we're in the sea, mark current cell as trail
+        if (inSea) {
+            // Current position becomes trail
+            do board.setCell(x, y, 2);  // TRAIL
+            do board.drawCell(x, y);
+        }
+        
+        // Move to next position
+        let x = nextX;
+        let y = nextY;
+        
+        // Check if we just entered the sea
+        if ((~inSea) & (nextCellVal = 0)) {  // Was on land, now on sea
+            let inSea = true;
+        }
+        
+        // If entering sea, mark as trail
+        if (inSea) {
+            do board.setCell(x, y, 2);  // TRAIL
+            do board.drawCell(x, y);
+        }
+        
+        return 0;
+    }
+
+    /** Returns the current X position. */
+    method int getX() {
+        return x;
+    }
+
+    /** Returns the current Y position. */
+    method int getY() {
+        return y;
+    }
+
+    /** Returns true if player is in the sea. */
+    method boolean isInSea() {
+        return inSea;
+    }
+
+    /** Resets player to starting position. */
+    method void reset(int startX, int startY) {
+        let x = startX;
+        let y = startY;
+        let direction = 0;
+        let inSea = false;
+        return;
+    }
+
+    /** Disposes of the player. */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
+

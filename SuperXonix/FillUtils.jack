@@ -1,0 +1,151 @@
+/** 
+ * Utility class for filling areas on the board.
+ * Uses wavefront algorithm - no stack needed, memory safe.
+ * Optimized: draws ONLY captured cells (not entire interior).
+ */
+class FillUtils {
+    
+    /** 
+     * Fills the area enclosed by the player's trail.
+     * Supports 4 enemy balls - area reachable from ANY ball stays as SEA.
+     * 
+     * Algorithm:
+     * 1. Convert TRAIL to LAND (creates boundary)
+     * 2. Mark ALL ball positions as TEMP (3)
+     * 3. Wavefront: expand TEMP to all reachable SEA cells
+     * 4. Convert and draw: SEA->LAND (captured), TEMP->SEA (ball area)
+     */
+    function void fillArea(Board board, 
+                           int b1x, int b1y, int b2x, int b2y,
+                           int b3x, int b3y, int b4x, int b4y) {
+        var int x, y, cellVal;
+        var boolean changed;
+        var int startX;
+        
+        // Step 1: Convert TRAIL to LAND and draw it solid black
+        do FillUtils.convertTrailToLand(board);
+        
+        // Step 2: Mark ALL ball positions as TEMP (if they're on SEA)
+        if (board.getCell(b1x, b1y) = 0) { do board.setCell(b1x, b1y, 3); }
+        if (board.getCell(b2x, b2y) = 0) { do board.setCell(b2x, b2y, 3); }
+        if (board.getCell(b3x, b3y) = 0) { do board.setCell(b3x, b3y, 3); }
+        if (board.getCell(b4x, b4y) = 0) { do board.setCell(b4x, b4y, 3); }
+        
+        // Step 3: Wavefront expansion - mark all SEA reachable from any ball
+        let changed = true;
+        while (changed) {
+            let changed = false;
+            
+            let y = 2;
+            while (y < 30) {
+                let x = 2;
+                while (x < 62) {
+                    let cellVal = board.getCell(x, y);
+                    
+                    // If this is unmarked SEA, check if neighbor is TEMP
+                    if (cellVal = 0) {
+                        if ((board.getCell(x - 1, y) = 3) |
+                            (board.getCell(x + 1, y) = 3) |
+                            (board.getCell(x, y - 1) = 3) |
+                            (board.getCell(x, y + 1) = 3)) {
+                            do board.setCell(x, y, 3);
+                            let changed = true;
+                        }
+                    }
+                    
+                    let x = x + 1;
+                }
+                let y = y + 1;
+            }
+        }
+        
+        // Step 4: Convert AND draw - only captured cells (SEA->LAND)
+        // SEA (0) = unreachable = CAPTURED -> LAND (draw black)
+        // TEMP (3) = ball's area -> SEA (no draw needed, already white)
+        let y = 2;
+        while (y < 30) {
+            let startX = -1;
+            let x = 2;
+            while (x < 62) {
+                let cellVal = board.getCell(x, y);
+                
+                if (cellVal = 0) {
+                    // SEA -> LAND (CAPTURED!) - needs drawing
+                    do board.setCell(x, y, 1);
+                    if (startX = -1) { 
+                        let startX = x;
+                    }
+                }
+                else {
+                    // Not captured - close any open segment and draw it
+                    if (startX > -1) {
+                        do Screen.setColor(true);
+                        do Screen.drawRectangle(startX * 8, y * 8, (x * 8) - 1, (y * 8) + 7);
+                        let startX = -1;
+                    }
+                    
+                    // Convert TEMP back to SEA (no drawing needed)
+                    if (cellVal = 3) {
+                        do board.setCell(x, y, 0);
+                    }
+                }
+                
+                let x = x + 1;
+            }
+            
+            // End of row - close any open segment
+            if (startX > -1) {
+                do Screen.setColor(true);
+                do Screen.drawRectangle(startX * 8, y * 8, (x * 8) - 1, (y * 8) + 7);
+            }
+            
+            let y = y + 1;
+        }
+        
+        return;
+    }
+    
+    /** Converts TRAIL to LAND and draws it solid black. */
+    function void convertTrailToLand(Board board) {
+        var int x, y;
+        var int cellVal;
+        
+        let y = 0;
+        while (y < 32) {
+            let x = 0;
+            while (x < 64) {
+                let cellVal = board.getCell(x, y);
+                if (cellVal = 2) {
+                    do board.setCell(x, y, 1);
+                    do board.drawCell(x, y);
+                }
+                let x = x + 1;
+            }
+            let y = y + 1;
+        }
+        
+        return;
+    }
+
+    /** Clears the trail (if player dies). Converts TRAIL back to SEA. */
+    function void clearTrail(Board board) {
+        var int x, y;
+        var int cellVal;
+        
+        let y = 0;
+        while (y < 32) {
+            let x = 0;
+            while (x < 64) {
+                let cellVal = board.getCell(x, y);
+                if (cellVal = 2) {
+                    do board.setCell(x, y, 0);
+                    do board.drawCell(x, y);
+                }
+                let x = x + 1;
+            }
+            let y = y + 1;
+        }
+        
+        return;
+    }
+}

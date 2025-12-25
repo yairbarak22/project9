@@ -1,0 +1,137 @@
+/** 
+ * Represents an enemy ball that bounces around in the sea.
+ * The ball moves diagonally and bounces off LAND.
+ */
+class Ball {
+    field int x, y;     // Current position (logical grid coords)
+    field int dx, dy;   // Velocity: 1 or -1
+
+    /** Constructs a new ball at position (startX, startY). */
+    constructor Ball new(int startX, int startY) {
+        let x = startX;
+        let y = startY;
+        let dx = 1;
+        let dy = 1;
+        
+        return this;
+    }
+
+    /** Draws the ball on the screen. */
+    method void draw() {
+        var int screenX, screenY;
+        
+        let screenX = x * 8;
+        let screenY = y * 8;
+        
+        // Draw ball as a filled circle-like shape
+        do Screen.setColor(true);
+        do Screen.drawCircle(screenX + 4, screenY + 4, 3);
+        
+        return;
+    }
+
+    /** Erases the ball from the screen. */
+    method void erase(Board board) {
+        // Redraw the cell to erase the ball
+        do board.drawCell(x, y);
+        return;
+    }
+
+    /** 
+     * Moves the ball with bouncing physics.
+     * Returns: 0=OK, 1=hit trail, 2=hit player
+     */
+    method int move(Board board, int playerX, int playerY) {
+        var int nextX, nextY;
+        var int cellVal;
+        var boolean bounceX, bounceY;
+        
+        let bounceX = false;
+        let bounceY = false;
+        
+        // Calculate next position
+        let nextX = x + dx;
+        let nextY = y + dy;
+        
+        // Check horizontal collision
+        let cellVal = board.getCell(nextX, y);
+        if (cellVal = 1) {  // LAND
+            let bounceX = true;
+        }
+        
+        // Check vertical collision
+        let cellVal = board.getCell(x, nextY);
+        if (cellVal = 1) {  // LAND
+            let bounceY = true;
+        }
+        
+        // Check diagonal collision (corner case)
+        if ((~bounceX) & (~bounceY)) {
+            let cellVal = board.getCell(nextX, nextY);
+            if (cellVal = 1) {  // LAND
+                let bounceX = true;
+                let bounceY = true;
+            }
+        }
+        
+        // Apply bounces
+        if (bounceX) {
+            let dx = -dx;
+            let nextX = x + dx;
+        }
+        if (bounceY) {
+            let dy = -dy;
+            let nextY = y + dy;
+        }
+        
+        // Erase from old position
+        do erase(board);
+        
+        // Move to new position
+        let x = nextX;
+        let y = nextY;
+        
+        // Check if new position is TRAIL (kill player)
+        let cellVal = board.getCell(x, y);
+        if (cellVal = 2) {  // TRAIL
+            return 1;
+        }
+        
+        // Check if hit player
+        if ((x = playerX) & (y = playerY)) {
+            return 2;
+        }
+        
+        return 0;
+    }
+
+    /** Returns the current X position. */
+    method int getX() {
+        return x;
+    }
+
+    /** Returns the current Y position. */
+    method int getY() {
+        return y;
+    }
+
+    /** Resets ball to a new position. Erases from old position first. */
+    method void reset(int newX, int newY, Board board) {
+        // Erase from OLD position before moving
+        do erase(board);
+        
+        // Update to new position
+        let x = newX;
+        let y = newY;
+        let dx = 1;
+        let dy = 1;
+        return;
+    }
+
+    /** Disposes of the ball. */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
+
