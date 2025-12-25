@@ -95,31 +95,63 @@ class SuperXonixGame {
                 // Move all balls (only if game not over)
                 if (~gameOver) {
                     // Ball 1
+                    // #region agent log
+                    do Output.moveCursor(20, 0);
+                    do Output.printString("DBG:b1 move         ");
+                    // #endregion
                     let ballResult = ball1.move(board, player.getX(), player.getY());
                     if ((ballResult = 1) | (ballResult = 2)) {
+                        // #region agent log
+                        do Output.moveCursor(20, 0);
+                        do Output.printString("DBG:b1 triggered    ");
+                        // #endregion
                         do loseLife();
                     }
                     
                     // Ball 2
                     if (~gameOver) {
+                        // #region agent log
+                        do Output.moveCursor(20, 0);
+                        do Output.printString("DBG:b2 move         ");
+                        // #endregion
                         let ballResult = ball2.move(board, player.getX(), player.getY());
                         if ((ballResult = 1) | (ballResult = 2)) {
+                            // #region agent log
+                            do Output.moveCursor(20, 0);
+                            do Output.printString("DBG:b2 triggered    ");
+                            // #endregion
                             do loseLife();
                         }
                     }
                     
                     // Ball 3
                     if (~gameOver) {
+                        // #region agent log
+                        do Output.moveCursor(20, 0);
+                        do Output.printString("DBG:b3 move         ");
+                        // #endregion
                         let ballResult = ball3.move(board, player.getX(), player.getY());
                         if ((ballResult = 1) | (ballResult = 2)) {
+                            // #region agent log
+                            do Output.moveCursor(20, 0);
+                            do Output.printString("DBG:b3 triggered    ");
+                            // #endregion
                             do loseLife();
                         }
                     }
                     
                     // Ball 4
                     if (~gameOver) {
+                        // #region agent log
+                        do Output.moveCursor(20, 0);
+                        do Output.printString("DBG:b4 move         ");
+                        // #endregion
                         let ballResult = ball4.move(board, player.getX(), player.getY());
                         if ((ballResult = 1) | (ballResult = 2)) {
+                            // #region agent log
+                            do Output.moveCursor(20, 0);
+                            do Output.printString("DBG:b4 triggered    ");
+                            // #endregion
                             do loseLife();
                         }
                     }
@@ -156,6 +188,11 @@ class SuperXonixGame {
 
     /** Handles losing a life. */
     method void loseLife() {
+        // #region agent log
+        do Output.moveCursor(22, 0);
+        do Output.printString("DBG:loseLife called");
+        // #endregion
+        
         let lives = lives - 1;
         
         if (lives = 0) {
@@ -168,6 +205,18 @@ class SuperXonixGame {
             do ball2.reset(44, 10, board);
             do ball3.reset(20, 22, board);
             do ball4.reset(44, 22, board);
+            
+            // #region agent log
+            do Output.moveCursor(21, 0);
+            do Output.printString("DBG:balls reset, pos:");
+            do Output.printInt(ball1.getX());
+            do Output.printChar(44);
+            do Output.printInt(ball2.getX());
+            do Output.printChar(44);
+            do Output.printInt(ball3.getX());
+            do Output.printChar(44);
+            do Output.printInt(ball4.getX());
+            // #endregion
             
             // Redraw
             do board.drawAll();

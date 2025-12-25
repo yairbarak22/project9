@@ -32,6 +32,14 @@ class Ball {
 
     /** Erases the ball from the screen. */
     method void erase(Board board) {
+        // #region agent log
+        do Output.moveCursor(18, 0);
+        do Output.printString("DBG:erase at ");
+        do Output.printInt(x);
+        do Output.printChar(44);
+        do Output.printInt(y);
+        do Output.printString("       ");
+        // #endregion
         // Redraw the cell to erase the ball
         do board.drawCell(x, y);
         return;
@@ -45,6 +53,15 @@ class Ball {
         var int nextX, nextY;
         var int cellVal;
         var boolean bounceX, bounceY;
+        
+        // #region agent log
+        do Output.moveCursor(19, 0);
+        do Output.printString("DBG:ball.move from ");
+        do Output.printInt(x);
+        do Output.printChar(44);
+        do Output.printInt(y);
+        do Output.printString("       ");
+        // #endregion
         
         let bounceX = false;
         let bounceY = false;
