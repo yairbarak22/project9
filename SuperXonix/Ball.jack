@@ -117,9 +117,11 @@ class Ball {
 
     /** Resets ball to a new position. Erases from old position first.
      *  If the position is LAND, searches for a valid SEA position.
+     *  Each ball searches from a different quadrant to avoid overlap.
      */
     method void reset(int newX, int newY, Board board) {
-        var int tryX, tryY;
+        var int tryX, tryY, startX, startY, count;
+        var boolean found;
         
         // Erase from OLD position before moving
         do erase(board);
@@ -129,19 +131,43 @@ class Ball {
             let x = newX;
             let y = newY;
         } else {
-            // Given position is LAND - search for a SEA cell
-            let tryX = 3;
-            let tryY = 3;
-            while ((~(board.getCell(tryX, tryY) = 0)) & (tryY < 29)) {
-                let tryX = tryX + 1;
-                if (tryX > 60) {
-                    let tryX = 3;
-                    let tryY = tryY + 1;
+            // Determine starting position based on preferred quadrant
+            // This ensures each ball searches from a different area
+            if (newX < 32) {
+                let startX = 3;
+            } else {
+                let startX = 32;
+            }
+            if (newY < 16) {
+                let startY = 3;
+            } else {
+                let startY = 16;
+            }
+            
+            // Search for a SEA cell starting from this quadrant
+            let found = false;
+            let tryX = startX;
+            let tryY = startY;
+            let count = 0;
+            
+            while ((~found) & (count < 1680)) {
+                if (board.getCell(tryX, tryY) = 0) {
+                    let found = true;
+                } else {
+                    let tryX = tryX + 1;
+                    if (tryX > 60) {
+                        let tryX = 3;
+                        let tryY = tryY + 1;
+                        if (tryY > 28) {
+                            let tryY = 3;
+                        }
+                    }
+                    let count = count + 1;
                 }
             }
             
             // Use found SEA position, or fallback to given position
-            if (board.getCell(tryX, tryY) = 0) {
+            if (found) {
                 let x = tryX;
                 let y = tryY;
             } else {
