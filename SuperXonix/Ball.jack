@@ -32,14 +32,6 @@ class Ball {
 
     /** Erases the ball from the screen. */
     method void erase(Board board) {
-        // #region agent log
-        do Output.moveCursor(18, 0);
-        do Output.printString("DBG:erase at ");
-        do Output.printInt(x);
-        do Output.printChar(44);
-        do Output.printInt(y);
-        do Output.printString("       ");
-        // #endregion
         // Redraw the cell to erase the ball
         do board.drawCell(x, y);
         return;
@@ -53,15 +45,6 @@ class Ball {
         var int nextX, nextY;
         var int cellVal;
         var boolean bounceX, bounceY;
-        
-        // #region agent log
-        do Output.moveCursor(19, 0);
-        do Output.printString("DBG:ball.move from ");
-        do Output.printInt(x);
-        do Output.printChar(44);
-        do Output.printInt(y);
-        do Output.printString("       ");
-        // #endregion
         
         let bounceX = false;
         let bounceY = false;
@@ -132,14 +115,41 @@ class Ball {
         return y;
     }
 
-    /** Resets ball to a new position. Erases from old position first. */
+    /** Resets ball to a new position. Erases from old position first.
+     *  If the position is LAND, searches for a valid SEA position.
+     */
     method void reset(int newX, int newY, Board board) {
+        var int tryX, tryY;
+        
         // Erase from OLD position before moving
         do erase(board);
         
-        // Update to new position
-        let x = newX;
-        let y = newY;
+        // Try to use the given position if it's SEA
+        if (board.getCell(newX, newY) = 0) {
+            let x = newX;
+            let y = newY;
+        } else {
+            // Given position is LAND - search for a SEA cell
+            let tryX = 3;
+            let tryY = 3;
+            while ((~(board.getCell(tryX, tryY) = 0)) & (tryY < 29)) {
+                let tryX = tryX + 1;
+                if (tryX > 60) {
+                    let tryX = 3;
+                    let tryY = tryY + 1;
+                }
+            }
+            
+            // Use found SEA position, or fallback to given position
+            if (board.getCell(tryX, tryY) = 0) {
+                let x = tryX;
+                let y = tryY;
+            } else {
+                let x = newX;
+                let y = newY;
+            }
+        }
+        
         let dx = 1;
         let dy = 1;
         return;
